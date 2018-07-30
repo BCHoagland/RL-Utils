@@ -54,6 +54,7 @@ class Trainer(object):
         self.policy = Policy(entry_obs_shape, envs.action_space)
         rollouts = RolloutStorage()
         optimizer = optim.Adam(self.policy.parameters(), lr=self.lr, eps=self.eps)
+        policy.train()
 
         if os.path.isfile(self.filename):
             print("loading saved params")
@@ -100,7 +101,7 @@ class Trainer(object):
                 for sample in data:
                     s_mb, log_p_old_mb, a_mb, returns_mb, adv_mb = sample
 
-                    log_p_mb, v_mb, entropy = self.policy.eval(s_mb, a_mb)
+                    log_p_mb, v_mb, entropy = self.policy.eval_a(s_mb, a_mb)
 
                     ratio = torch.exp(log_p_mb - log_p_old_mb)
                     f1 = ratio * adv_mb

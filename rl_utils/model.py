@@ -56,7 +56,7 @@ class Policy(nn.Module):
     def get_value(self, s):
         return self.base.get_value(s)
 
-    def eval(self, s, a):
+    def eval_a(self, s, a):
         return self.base.eval(s, a)
 
 class MLPContinuous(nn.Module):
@@ -95,7 +95,7 @@ class MLPContinuous(nn.Module):
     def get_value(self, s):
         return self.critic(s)
 
-    def eval(self, s, a):
+    def eval_a(self, s, a):
         mean = self.mean(s)
         log_std = self.log_std.expand_as(mean)
         std = torch.exp(log_std)
@@ -125,8 +125,6 @@ class MLPDiscrete(nn.Module):
             nn.Linear(64, 1)
         )
 
-        self.train()
-
     def forward(self, s):
         probs = self.actor(s)
         dist = Categorical(logits=probs)
@@ -140,7 +138,7 @@ class MLPDiscrete(nn.Module):
     def get_value(self, s):
         return self.critic(s)
 
-    def eval(self, s, a):
+    def eval_a(self, s, a):
         probs = self.actor(s)
         dist = Categorical(logits=probs)
 
@@ -191,7 +189,7 @@ class CNNContinuous(nn.Module):
         s = self.main(s)
         return self.critic(s)
 
-    def eval(self, s, a):
+    def eval_a(self, s, a):
         s = self.main(s)
 
         mean = self.mean(s)
@@ -241,7 +239,7 @@ class CNNDiscrete(nn.Module):
         s = self.main(s)
         return self.critic(s)
 
-    def eval(self, s, a):
+    def eval_a(self, s, a):
         s = self.main(s)
 
         lgts = self.actor(s)

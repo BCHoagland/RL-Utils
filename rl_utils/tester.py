@@ -22,6 +22,8 @@ class Tester(object):
 
     def test(self):
         policy = Policy(self.env.observation_space, self.env.action_space)
+        policy.eval()
+        
         if os.path.isfile(self.filename):
             policy.load_state_dict(torch.load(self.filename))
 
