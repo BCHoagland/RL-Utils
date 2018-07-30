@@ -11,20 +11,14 @@ import torch.nn as nn
 import torch.optim as optim
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 
-from rl_utils.model import *
+from rl_utils.model import Policy
 from rl_utils.storage import RolloutStorage
 from rl_utils.visualize import *
+from rl_utils.utils import *
 
 viz = Visdom()
 xs, means, stds = [], [], []
 xs, medians, first_quartiles, third_quartiles, mins, maxes = [], [], [], [], [], []
-
-def update_stacked_s(stacked_s, obs, obs_shape):
-    obs = torch.from_numpy(obs).float()
-    dim_shape = obs_shape[0]
-    stacked_s[:, :-dim_shape] = stacked_s[:, dim_shape:]
-    stacked_s[:, -dim_shape:] = obs
-    return stacked_s
 
 class Trainer(object):
     def __init__(self, env_name, args, iter_args, graph_info, filename_prefix, make_env):
@@ -54,7 +48,7 @@ class Trainer(object):
         self.policy = Policy(entry_obs_shape, envs.action_space)
         rollouts = RolloutStorage()
         optimizer = optim.Adam(self.policy.parameters(), lr=self.lr, eps=self.eps)
-        policy.train()
+        self.policy.train()
 
         if os.path.isfile(self.filename):
             print("loading saved params")

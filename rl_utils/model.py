@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from rl_utils.utils import *
 
 DISCRETE = "Discrete"
 CONTINUOUS = "Box"
@@ -17,23 +18,9 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-def normal_entropy(std):
-    var = std.pow(2)
-    entropy = 0.5 + 0.5 * torch.log(2 * var * np.pi)
-    return entropy.sum(1, keepdim=True)
-
-def normal_log_density(x, mean, log_std):
-    std = torch.exp(log_std)
-    var = std.pow(2)
-    log_density = - torch.pow(x - mean, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std
-
-    return log_density.sum(1, keepdim=True)
-
 class Policy(nn.Module):
-    def __init__(self, observation_space, action_space):
+    def __init__(self, obs_shape, action_space):
         super(Policy, self).__init__()
-
-        obs_shape = observation_space.shape
 
         if action_space.__class__.__name__ == DISCRETE:
             n_acts = action_space.n
@@ -57,7 +44,7 @@ class Policy(nn.Module):
         return self.base.get_value(s)
 
     def eval_a(self, s, a):
-        return self.base.eval(s, a)
+        return self.base.eval_a(s, a)
 
 class MLPContinuous(nn.Module):
     def __init__(self, n_obs, n_acts):
