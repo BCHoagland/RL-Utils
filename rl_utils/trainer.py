@@ -86,7 +86,7 @@ class Trainer(object):
                 stacked_s = update_stacked_s(stacked_s, s, obs_shape)
 
             with torch.no_grad():
-                next_v = self.policy.get_value(torch.FloatTensor(s))
+                next_v = self.policy.get_value(stacked_s)
             rollouts.compute_adv_and_returns(next_v, self.gamma, self.tau, self.eps)
 
             for epoch in range(self.epochs):

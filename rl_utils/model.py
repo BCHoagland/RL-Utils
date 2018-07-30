@@ -114,7 +114,7 @@ class MLPDiscrete(nn.Module):
 
     def forward(self, s):
         probs = self.actor(s)
-        dist = Categorical(logits=probs)
+        dist = MultiCategorical(logits=probs)
 
         a = dist.sample()
         log_p = dist.log_probs(a)
@@ -127,7 +127,7 @@ class MLPDiscrete(nn.Module):
 
     def eval_a(self, s, a):
         probs = self.actor(s)
-        dist = Categorical(logits=probs)
+        dist = MultiCategorical(logits=probs)
 
         log_p = dist.log_probs(a)
         v = self.critic(s)

@@ -1,0 +1,1 @@
+unsqueeze mask when multiplying stacked_s when dealing with images
