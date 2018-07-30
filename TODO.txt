@@ -1,0 +1,1 @@
+storage.py: make 's' detect whether to use Tensor() or stack()
