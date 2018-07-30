@@ -18,7 +18,7 @@ class Tester(object):
         env = self.env
         obs_shape = env.observation_space.shape
         policy = Policy(obs_shape, env.action_space)
-        policy.eval()
+        # policy.eval()
 
         if os.path.isfile(self.filename):
             policy.load_state_dict(torch.load(self.filename))

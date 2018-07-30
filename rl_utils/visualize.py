@@ -6,6 +6,7 @@ viz = Visdom()
 #this doesnt work cause global variables in python are weird
 g_lower_std, g_upper_std, g_min_r, g_max_r = 0, 0, 0, 0
 
+#return a line with the given points, color, and fill characteristics
 def get_line(x, y, name, color='transparent', isFilled=False, fillcolor='transparent'):
     if isFilled:
         fill = 'tonexty'
@@ -24,6 +25,8 @@ def get_line(x, y, name, color='transparent', isFilled=False, fillcolor='transpa
         showlegend=False
     )
 
+#return a set of dots at the given points
+#they have a cool color scheme so that's fun
 def get_dots(x, y, name):
     return dict(
         x=x,
@@ -39,6 +42,7 @@ def get_dots(x, y, name):
         showlegend=False
     )
 
+#create a plot with a line representing the mean and a shaded area around the mean representing the standard deviation of the rewards from all the actors
 def update_viz_mean(x, mean, std, colors, env_name, win_name):
     n = len(mean)
     upper_std = [0] * n
@@ -63,6 +67,7 @@ def update_viz_mean(x, mean, std, colors, env_name, win_name):
 
     viz._send({'data': data, 'layout': layout, 'win': win_name + "-mean"})
 
+#create a plot with a line representing the median and two shaded regions representing the quartiles and most extreme values of the rewards from all the actors
 def update_viz_median(x, median, first_quartile, third_quartile, min_r, max_r, colors, env_name, win_name):
     g_min_r = min(min_r)
     g_max_r = max(max_r)
@@ -85,6 +90,8 @@ def update_viz_median(x, median, first_quartile, third_quartile, min_r, max_r, c
 
     viz._send({'data': data, 'layout': layout, 'win': win_name + "-median"})
 
+#create a plot with dots at the given points
+#even though the line graphs are much easier to follow, this looks a lot cooler cause color scales and all that
 def update_viz_dots(x, y, data_type, env_name, win_name):
 
     dots = get_dots(x, y, data_type)

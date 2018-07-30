@@ -8,4 +8,5 @@ rl_utils/model.py
 rl_utils/storage.py
 rl_utils/tester.py
 rl_utils/trainer.py
+rl_utils/utils.py
 rl_utils/visualize.py
