@@ -45,7 +45,7 @@ class RolloutStorage(object):
         self.adv = (self.adv - self.adv.mean()) / (self.adv.std() + eps)
 
     def get_mb(self, num_mb, N, T):
-        s = torch.Tensor(self.s)
+        s = torch.stack(self.s)
         p = torch.stack(self.p)
         a = torch.stack(self.a)
         returns = self.returns

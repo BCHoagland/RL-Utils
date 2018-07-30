@@ -6,5 +6,6 @@ RL_Utils.egg-info/top_level.txt
 rl_utils/__init__.py
 rl_utils/model.py
 rl_utils/storage.py
+rl_utils/tester.py
 rl_utils/trainer.py
 rl_utils/visualize.py

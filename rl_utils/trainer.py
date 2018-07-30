@@ -1,14 +1,15 @@
 import os
-import gym
-import gym.spaces
-import gym_simple
+from copy import deepcopy
 from visdom import Visdom
 import numpy as np
+
+import gym, gym.spaces
+import gym_simple
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
-import multiprocessing
 
 from rl_utils.model import *
 from rl_utils.storage import RolloutStorage
@@ -18,11 +19,18 @@ viz = Visdom()
 xs, means, stds = [], [], []
 xs, medians, first_quartiles, third_quartiles, mins, maxes = [], [], [], [], [], []
 
+def update_stacked_s(stacked_s, obs, obs_shape):
+    obs = torch.from_numpy(obs).float()
+    dim_shape = obs_shape[0]
+    stacked_s[:, :-dim_shape] = stacked_s[:, dim_shape:]
+    stacked_s[:, -dim_shape:] = obs
+    return stacked_s
+
 class Trainer(object):
     def __init__(self, env_name, args, iter_args, graph_info, filename_prefix, make_env):
         super(Trainer, self).__init__()
 
-        self.gamma, self.tau, self.eps, self.num_mb, self.N, self.T, self.total_steps, self.epochs, self.lr, self.value_loss_coef, self.entropy_coef, self.max_grad_norm, self.clip = args
+        self.gamma, self.tau, self.eps, self.num_mb, self.num_stack, self.N, self.T, self.total_steps, self.epochs, self.lr, self.value_loss_coef, self.entropy_coef, self.max_grad_norm, self.clip = args
 
         self.iters = int(self.total_steps) // self.N // self.T
         self.log_iter, self.vis_iter, self.save_iter = iter_args
@@ -42,7 +50,8 @@ class Trainer(object):
 
         obs_shape = envs.observation_space.shape
 
-        self.policy = MLP(obs_shape[0], envs.action_space.shape[0])
+        entry_obs_shape = (obs_shape[0] * self.num_stack, *obs_shape[1:])
+        self.policy = Policy(entry_obs_shape, envs.action_space)
         rollouts = RolloutStorage()
         optimizer = optim.Adam(self.policy.parameters(), lr=self.lr, eps=self.eps)
 
@@ -53,12 +62,14 @@ class Trainer(object):
         episode_rewards = torch.zeros([self.N, 1])
         final_rewards = torch.zeros([self.N, 1])
 
+        stacked_s = torch.zeros(self.N, self.num_stack * obs_shape[0], *obs_shape[1:])
         s = envs.reset()
+        stacked_s = update_stacked_s(stacked_s, s, obs_shape)
 
         for iter in range(self.iters):
             for step in range(self.T):
                 with torch.no_grad():
-                    a, log_p, v = self.policy(torch.FloatTensor(s))
+                    a, log_p, v = self.policy(stacked_s)
                 a_np = a.squeeze(1).cpu().numpy()
 
                 s2, r, done, _ = envs.step(a_np)
@@ -67,13 +78,17 @@ class Trainer(object):
 
                 mask = torch.FloatTensor([[0.0] if d else [1.0] for d in done])
 
-                rollouts.add(s, log_p, v, a, r, mask)
+                rollouts.add(deepcopy(stacked_s), log_p, v, a, r, mask)
+
+                if self.num_stack > 1:
+                    stacked_s *= mask
 
                 final_rewards *= mask
                 final_rewards += (1 - mask) * episode_rewards
                 episode_rewards *= mask
 
                 s = s2
+                stacked_s = update_stacked_s(stacked_s, s, obs_shape)
 
             with torch.no_grad():
                 next_v = self.policy.get_value(torch.FloatTensor(s))
@@ -123,9 +138,9 @@ class Trainer(object):
                 means.append(mean_r)
                 stds.append(std_r)
 
-                # update_viz_median(xs, medians, first_quartiles, third_quartiles, mins, maxes, self.graph_colors, self.env_name, self.win_name)
-                # update_viz_mean(xs, means, stds, self.graph_colors[1:], self.env_name, self.win_name)
-                update_viz_dots(xs, means, "Mean", self.env_name, self.win_name)
+                update_viz_median(xs, medians, first_quartiles, third_quartiles, mins, maxes, self.graph_colors, self.env_name, self.win_name)
+                update_viz_mean(xs, means, stds, self.graph_colors[1:], self.env_name, self.win_name)
+                # update_viz_dots(xs, means, "Mean", self.env_name, self.win_name)
 
             if iter % self.log_iter == self.log_iter - 1:
                 print("iter: %d, steps: %d -> mean: %.1f, median: %.1f / min: %.1f, max: %.1f / policy loss: %.3f, value loss: %.1f, entropy loss: %.3f" % (iter + 1, total_num_steps, mean_r, median_r, min_r, max_r, policy_loss, value_loss, entropy_loss))
