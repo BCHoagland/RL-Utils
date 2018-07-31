@@ -92,6 +92,7 @@ class MLPContinuous(nn.Module):
 
         #sample from the distribution and calculuate the probability that we chose that value
         a = torch.normal(mean, std)
+        a = torch.clamp(a, -1.0, 1.0)
         log_p = normal_log_density(a, mean, log_std)
 
         #calculate the predicted value of the current state

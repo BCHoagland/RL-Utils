@@ -17,7 +17,8 @@ class Tester(object):
     def test(self):
         env = self.env
         obs_shape = env.observation_space.shape
-        policy = Policy(obs_shape, env.action_space)
+        entry_obs_shape = (obs_shape[0] * self.num_stack, *obs_shape[1:])
+        policy = Policy(entry_obs_shape, env.action_space)
         # policy.eval()
 
         if os.path.isfile(self.filename):
@@ -32,8 +33,10 @@ class Tester(object):
             with torch.no_grad():
                 a = policy(stacked_s)[0]
             a_np = a.squeeze(0).cpu().numpy()
+            if len(a_np) == 1:
+                a_np = a_np[0]
             s, _, done, _ = env.step(a_np)
+            update_stacked_s(stacked_s, s, obs_shape)
             if done:
-                update_stacked_s(stacked_s, s, obs_shape)
                 break
         self.env.close()
