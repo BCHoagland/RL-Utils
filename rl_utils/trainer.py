@@ -13,12 +13,12 @@ from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 
 from rl_utils.model import Policy
 from rl_utils.storage import RolloutStorage
-from rl_utils.visualize import *
+from rl_utils.visualize import Visualizer
 from rl_utils.utils import *
 
-viz = Visdom()
 xs, means, stds = [], [], []
 xs, medians, first_quartiles, third_quartiles, mins, maxes = [], [], [], [], [], []
+losses = []
 
 class Trainer(object):
     def __init__(self, env_name, args, iter_args, graph_info, filename_prefix, make_env):
@@ -35,6 +35,8 @@ class Trainer(object):
 
         self.make_env = make_env
         self.env_name = env_name
+
+        self.visualizer = Visualizer()
 
     def train(self):
         #my laptop only has 8 cores and I generally use 8 actors for stuff, so make sure that the multiprocessing module doesn't try to give each actor multiple threads and make them fight
@@ -97,6 +99,7 @@ class Trainer(object):
                 #set a mask for this state
                 #we'll use this calculate returns and update the stack
                 #if we're done, the mask is 0 -> this'll make returns stop cumulating at this point and it'll clear past actions from the stack so those past actions don't confuse the network
+                #we should apply the mask to the stack after we've stored it (so we don't mess up the data we're currently using), so we don't do it just yet
                 #I struggled with that last part for a bit, so imagine you're playing pong with frame stacking. Once the env resets, the last frames of the previous game don't affect you at all so they shouldnt be used to predict what comes next
                 mask = torch.FloatTensor([[0.0] if d else [1.0] for d in done])
 
@@ -104,6 +107,7 @@ class Trainer(object):
                 #since stacked_s is declared at a higher scope, chaning its value in the training loop will change all the stored stacked_s values unless you store a copy of it instead
                 rollouts.add(deepcopy(stacked_s), log_p, v, a, r, mask)
 
+                #clears the stack if the env is done
                 #there's no point in resetting the stack if there's only 1 value in it. the value will get reset in a few lines anyway so why do unnecessary math
                 if self.num_stack > 1:
                     stacked_s *= mask
@@ -178,9 +182,11 @@ class Trainer(object):
                 means.append(mean_r)
                 stds.append(std_r)
 
-                update_viz_median(xs, medians, first_quartiles, third_quartiles, mins, maxes, self.graph_colors, self.env_name, self.win_name)
-                update_viz_mean(xs, means, stds, self.graph_colors[1:], self.env_name, self.win_name)
-                # update_viz_dots(xs, means, "Mean", self.env_name, self.win_name)
+                losses.append(loss.item())
+
+                self.visualizer.update_viz_median(xs, medians, first_quartiles, third_quartiles, mins, maxes, self.graph_colors, self.env_name, self.win_name)
+                self.visualizer.update_viz_mean(xs, means, stds, self.graph_colors[1:], self.env_name, self.win_name)
+                self.visualizer.update_viz_loss(xs, losses, self.graph_colors[2], self.env_name, self.win_name)
 
             #log the current data
             if iter % self.log_iter == self.log_iter - 1:
