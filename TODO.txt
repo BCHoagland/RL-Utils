@@ -1,1 +1,2 @@
 unsqueeze mask when multiplying stacked_s when dealing with images
+look into linear annealment of an alpha hyperparameter that affects clip and lr

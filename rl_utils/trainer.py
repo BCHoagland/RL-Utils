@@ -4,7 +4,7 @@ from visdom import Visdom
 import numpy as np
 
 import gym, gym.spaces
-import gym_simple
+import gym_service
 
 import torch
 import torch.nn as nn
