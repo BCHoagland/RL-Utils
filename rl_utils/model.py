@@ -7,7 +7,6 @@ DISCRETE = "Discrete"
 CONTINUOUS = "Box"
 
 #the usual categorial distribution that pytorch provides wont work with multiple actors
-#thanks ikostrikov for writing the categorical stuff for me
 MultiCategorical = torch.distributions.Categorical
 
 sample_temp = MultiCategorical.sample
